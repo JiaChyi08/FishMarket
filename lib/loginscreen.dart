@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'registrationscreen.dart';
 import 'mainscreen.dart';
+import 'user.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
@@ -154,7 +155,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ));
 
         Navigator.push(
-            context, MaterialPageRoute(builder: (content) => MainScreen()));
+            context, MaterialPageRoute(builder: (content) => MainScreen(user: User(
+                                  email: _emailController.text,
+                                  ),)));
       } else {
         Fluttertoast.showToast(
             msg: "Login  Failed",
