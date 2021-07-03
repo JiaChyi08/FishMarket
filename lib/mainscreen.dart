@@ -3,9 +3,13 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
+import 'package:mhl_fishmarket/paymenthistory.dart';
+import 'package:ndialog/ndialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mhl_fishmarket/user.dart';
+import 'paymenthistory.dart';
 import 'loginscreen.dart';
+import 'cartpage.dart';
 
 class MainScreen extends StatefulWidget {
   MainScreen({Key key, this.user}) : super(key: key);
@@ -62,7 +66,7 @@ class _MainScreenState extends State<MainScreen>  {
             ))),
         actions: [
           TextButton.icon(
-              onPressed: () => {},
+              onPressed: () => {_goToCart()},
               icon: Icon(
                 Icons.shopping_cart,
                 color: Colors.black,
@@ -110,12 +114,20 @@ class _MainScreenState extends State<MainScreen>  {
               leading: Icon(Icons.shopping_cart), title: Text("My Cart",style: TextStyle(fontSize:16)),  
               onTap: () {  
                 Navigator.pop(context);  
-              },  
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (content) => CartPage(user: widget.user)));
+              }  
             ),  
              ListTile(  
-              leading: Icon(Icons.shopping_basket_rounded), title: Text("My Orders",style: TextStyle(fontSize:16)),  
+              leading: Icon(Icons.shopping_basket_rounded), title: Text("Order History",style: TextStyle(fontSize:16)),  
               onTap: () {  
                 Navigator.pop(context);  
+                 Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (content) => PaymentHistoryScreen(user: widget.user)));
               },  
             ),  
              
@@ -233,13 +245,15 @@ class _MainScreenState extends State<MainScreen>  {
                                     Text("RM " +
                                         double.parse(
                                                 _productList[index]['prprice'])
-                                            .toStringAsFixed(2)),
+                                            .toStringAsFixed(2),style: TextStyle(color: Colors.red,fontWeight: FontWeight.bold)),
                                     Container(
                                       child: ElevatedButton(
-                                        onPressed: () => {},
-                                        child: Text("Add to Cart"),
+                                        onPressed: () => {_addToCart(index)},
+                                        child: Text("Add to Cart",style: TextStyle(color: Colors.black)),
                                         style: ElevatedButton.styleFrom(
-                                        primary: Colors.blueAccent[200],
+                                        primary: Colors.lightBlueAccent[100],
+                                        onPrimary: Colors.white,
+                                        shadowColor: Colors.red,
                                         ),
                                       ),
                                     ),
@@ -281,12 +295,56 @@ class _MainScreenState extends State<MainScreen>  {
         _productList = jsondata["products"];
         _titlecenter = "";
       }
+      if(!mounted){
+        return;
+      }
       setState(() {});
     });
   }
 
+    Future<void> _testasync() async {
+    _loadProduct("");
+    _loadCart();
+  }
 
- _testasync(){ 
-    _loadProduct("all");
- }
-} 
+
+  _addToCart(int index) async {
+      ProgressDialog progressDialog = ProgressDialog(context,
+          message: Text("Add to cart"), title: Text("Progress..."));
+      progressDialog.show();
+      await Future.delayed(Duration(seconds: 1));
+      String prid = _productList[index]['prid'];
+      http.post(Uri.parse("https://lowtancqx.com/s270964/FishMarket/php/insertcart.php"),
+        body: {"email": widget.user.email, "prid": prid}).then((response) {
+        print(response.body);
+        if (response.body == "failed") {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed',style:TextStyle(fontWeight: FontWeight.bold ))
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Successfully Added to Cart',style:TextStyle(fontWeight: FontWeight.bold ))
+          ));
+          _loadCart();
+        }
+      });
+      progressDialog.dismiss();
+    }
+
+  _goToCart() {
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (context) => CartPage(user: widget.user)));
+    _loadProduct("");
+  }
+
+
+void _loadCart() {
+    http.post(Uri.parse("https://lowtancqx.com/s270964/FishMarket/php/loadcartitem.php"),
+        body: {"email": widget.user.email}).then((response) {
+      setState(() {
+        cartitem = int.parse(response.body);
+        print(cartitem);
+      });
+    });
+  }
+}
